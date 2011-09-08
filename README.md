@@ -34,6 +34,20 @@ the result is other-path. If other-path is nil, the result is base-path.
 Otherwise, the result is other-path concatenated onto base-path. Does not
 normalize its output.
 
+## Obtaining
+
+If you are using Cake or Leiningen, you can simply add 
+
+    [pathetic "0.1.0"]
+
+to your project.clj and download it from Clojars with 
+
+    cake deps
+
+or 
+
+    lein deps
+
 ## License
 
 Copyright (C) 2011 David Santiago
