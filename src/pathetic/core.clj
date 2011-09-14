@@ -38,7 +38,7 @@
    because there is more than one way to write some paths, some simplification
    might happen anyways, such as if the path starts with a (redundant) \".\"."
   [path]
-  (let [path-pieces (str/split path separator-pattern)]
+  (let [path-pieces (str/split (str path) separator-pattern)]
     ;; (str/split "/" #"/") => [], so we check for this case first.
     (if (= 0 (count path-pieces))
       [:root]
@@ -140,12 +140,14 @@
    Otherwise, the result is other-path concatenated onto base-path. Does not
    normalize its output."
   [base-path other-path]
-  (cond (nil? other-path)
-        base-path
-        (absolute-path? other-path)
-        other-path
-        :else
-        (let [base-components (parse-path (normalize base-path))
-              ;; Skip the first element to get rid of the :cwd.
-              other-components (rest (parse-path (normalize other-path)))]
-          (render-path (concat base-components other-components)))))
+  (let [base-path (str base-path)
+        other-path (str other-path)]
+    (cond (nil? other-path)
+          base-path
+          (absolute-path? other-path)
+          other-path
+          :else
+          (let [base-components (parse-path (normalize base-path))
+                ;; Skip the first element to get rid of the :cwd.
+                other-components (rest (parse-path (normalize other-path)))]
+            (render-path (concat base-components other-components))))))
