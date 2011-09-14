@@ -1,7 +1,8 @@
 (ns pathetic.test.core
   (:refer-clojure :exclude [resolve])
   (:use pathetic.core
-        clojure.test))
+        clojure.test
+        [clojure.java.io :only [file]]))
 
 (deftest test-parse-path
   (is (= [:root] (parse-path "/")))
@@ -12,6 +13,11 @@
   (is (= [:cwd "A" "B"] (parse-path "./A/B")))
   (is (= [:cwd "A"] (parse-path "A")))
   (is (= [:cwd "A" "B"] (parse-path "A/B")))
+  (is (= [:cwd ".." "A"] (parse-path "../A")))
+
+  ;; Test File args work just as well.
+  (is (= [:root] (parse-path (file "/"))))
+  (is (= [:root "A" "B"] (parse-path (file "/A/B"))))
   (is (= [:cwd ".." "A"] (parse-path "../A"))))
 
 (deftest test-render-path
@@ -44,9 +50,13 @@
   (is (= "A" (normalize "././A")))
   (is (= "." (normalize ".")))
   (is (= "." (normalize "./.")))
+  (is (= "../.." (normalize "../..")))
+
+  ;; Test that it works the same on a File
+  (is (= "/A/B" (normalize "/A/B/C/..")))
   (is (= "../.." (normalize "../.."))))
 
-(deftest test-relative-path
+(deftest test-relativize
   (is (= "B"
          (relativize "/A" "/A/B")))
   (is (= "B"
@@ -55,6 +65,8 @@
          (relativize "/A" "/A/B/")))
   (is (= ".."
          (relativize "/A" "/A/B/../..")))
+  (is (= ".."
+         (relativize "/A" "/A/B/../../")))
   (is (= "B"
          (relativize "A" "A/B")))
   (is (= "B"
@@ -62,16 +74,29 @@
   (is (= ".."
          (relativize "A" "A/B/../..")))
   (is (= "../E/F"
-         (relativize "/A/B/C/D" "/A/B/C/E/F"))))
+         (relativize "/A/B/C/D" "/A/B/C/E/F")))
 
-(deftest test-resolve-path
+  ;; Test File args in various combinations with strings.
+  (is (= "B"
+         (relativize (file "/A") (file "/A/B"))))
+  (is (= ".."
+         (relativize (file "/A") "/A/B/../../")))
+  (is (= "B"
+         (relativize "A" (file "A/./B")))))
+
+(deftest test-resolve
   (is (= "/A/B" (resolve "/A/" "B")))
   (is (= "/A/B" (resolve "/A" "B")))
   (is (= "/A" (resolve "/A" nil)))
   (is (= "/B" (resolve "/A" "/B")))
   (is (= "/B" (resolve "/A/" "/B")))
   (is (= "A/B" (resolve "A" "B")))
-  (is (= "A/B" (resolve "A/" "B/"))))
+  (is (= "A/B" (resolve "A/" "B/")))
+
+  ;; Test File args in various combinations
+  (is (= "/A/B" (resolve (file "/A/") (file "B"))))
+  (is (= "/B" (resolve (file "/A") "/B")))
+  (is (= "A/B" (resolve "A" (file "B")))))
 
 ;; In JDK7, java.nio.file.Path guarantees that if p and q are normalized paths,
 ;; and q does not start at root, then
