@@ -34,11 +34,17 @@ the result is other-path. If other-path is nil, the result is base-path.
 Otherwise, the result is other-path concatenated onto base-path. Does not
 normalize its output.
 
+## News
+
+- Released version 0.2.0
+  - All core functions now accept File arguments as well as strings. (Actually, anything that
+    will give a path when it has `str` called on it).
+
 ## Obtaining
 
 If you are using Cake or Leiningen, you can simply add 
 
-    [pathetic "0.1.0"]
+    [pathetic "0.2.0"]
 
 to your project.clj and download it from Clojars with 
 
