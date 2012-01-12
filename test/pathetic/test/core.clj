@@ -18,7 +18,12 @@
   ;; Test File args work just as well.
   (is (= [:root] (parse-path (file "/"))))
   (is (= [:root "A" "B"] (parse-path (file "/A/B"))))
-  (is (= [:cwd ".." "A"] (parse-path "../A"))))
+  (is (= [:cwd ".." "A"] (parse-path "../A")))
+
+  ;; Test alternate separators
+  (is (= [:root] (parse-path "/" "/")))
+  (is (= [:root] (parse-path "\\" #"\\")))
+  (is (= [:root "A" "B"] (parse-path ":A:B" ":"))))
 
 (deftest test-render-path
   (is (= "/A" (render-path [:root "A"])))
@@ -27,7 +32,12 @@
   (is (= "A" (render-path [:cwd "A"])))
   (is (= "A/B" (render-path [:cwd "A" "B"])))
   (is (= ".." (render-path [:cwd ".."])))
-  (is (= "../A" (render-path [:cwd ".." "A"]))))
+  (is (= "../A" (render-path [:cwd ".." "A"])))
+
+  ;; Test alternate separators
+  (is (= "/A" (render-path [:root "A"] "/")))
+  (is (= ":A:B" (render-path [:root "A" "B"] ":")))
+  (is (= "A\\B" (render-path [:cwd "A" "B"] "\\"))))
 
 (deftest test-up-dir
   (is (= [:cwd ".."] (up-dir [:cwd])))
@@ -53,8 +63,12 @@
   (is (= "../.." (normalize "../..")))
 
   ;; Test that it works the same on a File
-  (is (= "/A/B" (normalize "/A/B/C/..")))
-  (is (= "../.." (normalize "../.."))))
+  (is (= "/A/B" (normalize (file "/A/B/C/.."))))
+  (is (= "../.." (normalize (file "../.."))))
+
+  ;; Test alternate separators
+  (is (= "/A/B" (normalize "/A/B/" "/")))
+  (is (= ":A:B" (normalize ":A:B" ":"))))
 
 (deftest test-relativize
   (is (= "B"
@@ -82,7 +96,11 @@
   (is (= ".."
          (relativize (file "/A") "/A/B/../../")))
   (is (= "B"
-         (relativize "A" (file "A/./B")))))
+         (relativize "A" (file "A/./B"))))
+
+  ;; Test alternate separators
+  (is (= "B" (relativize "/A" "/A/B" "/")))
+  (is (= "B" (relativize ":A" ":A:B:" ":"))))
 
 (deftest test-resolve
   (is (= "/A/B" (resolve "/A/" "B")))
@@ -96,7 +114,11 @@
   ;; Test File args in various combinations
   (is (= "/A/B" (resolve (file "/A/") (file "B"))))
   (is (= "/B" (resolve (file "/A") "/B")))
-  (is (= "A/B" (resolve "A" (file "B")))))
+  (is (= "A/B" (resolve "A" (file "B"))))
+
+  ;; Test alternate separators
+  (is (= "/A/B" (resolve "/A/" "B" "/")))
+  (is (= ":A" (resolve ":A" nil ":"))))
 
 ;; In JDK7, java.nio.file.Path guarantees that if p and q are normalized paths,
 ;; and q does not start at root, then
@@ -113,3 +135,34 @@
          (relativize "A" (resolve "A" ".."))))
   (is (= "../.."
          (relativize "A" (resolve "A" "../..")))))
+
+(deftest test-ensure-trailing-separator
+  (is (= "/A/B/" (ensure-trailing-separator "/A/B/")))
+  (is (= "/A/B/" (ensure-trailing-separator "/A/B")))
+  (is (= "A/B/" (ensure-trailing-separator "A/B/")))
+  (is (= "A/B/" (ensure-trailing-separator "A/B")))
+  (is (= "A/B/" (ensure-trailing-separator "A/B/" "/")))
+  (is (= "A/B/" (ensure-trailing-separator "A/B" "/")))
+  (is (= "A/B:" (ensure-trailing-separator "A/B" ":"))))
+
+(deftest test-split-url-on-path
+  (is (= ["http://a.b.c" "/d/e/f" "?g=h"]
+           (split-url-on-path "http://a.b.c/d/e/f?g=h")))
+  (is (= ["http://a.b.c" "/d/e/f" ""]
+           (split-url-on-path "http://a.b.c/d/e/f")))
+  (is (= ["http://a.b.c" "///d/e/f/" "?g=h"]
+           (split-url-on-path "http://a.b.c///d/e/f/?g=h"))))
+
+(deftest test-url-normalize
+  (is (= "http://a.b.c/d/e/f?g=h" (url-normalize "http://a.b.c/d/e/f?g=h")))
+  (is (= "http://a.b.c/d/e/f?g=h" (url-normalize "http://a.b.c///d/e/f?g=h")))
+  (is (= "http://a.b.c/d/e/f?g=h#i" (url-normalize
+                                     "http://a.b.c/d/e/f?g=h#i")))
+  (is (= "http://a.b.c/d/e/f?g=h#i" (url-normalize
+                                     "http://a.b.c/d/e/f/g/..?g=h#i")))
+  (is (= "http://a.b.c/d/e/f?g=h#i" (url-normalize
+                                     "http://a.b.c/d/e/f/g/../?g=h#i")))
+  (is (= "http://don:dr4p3r@a.b.c:8080/d/e/f?g=h#i"
+         (url-normalize "http://don:dr4p3r@a.b.c:8080/d/e/f?g=h#i")))
+  (is (= "http://don:dr4p3r@a.b.c:8080/d/e/f?g=h#i"
+         (url-normalize "http://don:dr4p3r@a.b.c:8080////d/e//f?g=h#i"))))
