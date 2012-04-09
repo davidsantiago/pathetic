@@ -1,4 +1,4 @@
-(defproject pathetic "0.3.0"
+(defproject pathetic "0.3.1"
   :description "The missing path handling."
   :dependencies [[org.clojure/clojure "1.2.1"]]
 
