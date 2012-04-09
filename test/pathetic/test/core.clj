@@ -5,6 +5,8 @@
         [clojure.java.io :only [file]]))
 
 (deftest test-parse-path
+  (is (= nil (parse-path nil)))
+  (is (= nil (parse-path "")))
   (is (= [:root] (parse-path "/")))
   (is (= [:root "A"] (parse-path "/A")))
   (is (= [:root "A" "B"] (parse-path "/A/B")))

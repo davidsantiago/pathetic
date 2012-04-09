@@ -12,7 +12,8 @@
 ;; pieces between File/separator). If the path is an absolute path, the first
 ;; component will be :root, so that if during processing everything else is
 ;; removed, we know to render "/" and not ".". Similarly, if the path is a
-;; relative path, the first component will be :cwd.
+;; relative path, the first component will be :cwd. In this file, I'll call
+;; this data structure a "path vector."
 
 ;;
 ;; Utility Functions
@@ -33,10 +34,11 @@
     (drop (count common-parts) interesting-coll)))
 
 (defn parse-path
-  "Given a j.io.File or string containing a relative or absolute path, returns
-   the corresponding data structure described at the top of the file. Optional
-   second argument containing a string or j.u.regex.Pattern (faster) to use
-   for the separator can be given.
+  "Given a j.io.File or string containing a relative or absolute path,
+   returns the corresponding path vector data structure described at
+   the top of the file. Optional second argument containing a string
+   or j.u.regex.Pattern (faster) to use for the separator can be
+   given.
 
    This function does not do any normalization or simplification. However,
    because there is more than one way to write some paths, some simplification
@@ -44,23 +46,29 @@
   ([path]
      (parse-path path default-separator-pattern))
   ([path sep-pat]
-     (let [sep-pat (cond (instance? java.util.regex.Pattern sep-pat) sep-pat
-                         ;; Don't build a pointless pattern if separator is
-                         ;; the default separator we already have a pattern for.
-                         (= File/separator sep-pat) default-separator-pattern
-                     :else (re-pattern sep-pat))
-           path-pieces (str/split (str path) sep-pat)]
-       ;; (str/split "/" #"/") => [], so we check for this case first.
-       (if (= 0 (count path-pieces))
-         [:root]
-         (case (first path-pieces)
-               ;; If first item is "", we split a path that started with "/".
-               ;; Then we need to skip the "" at the start of path-pieces.
-               "" (apply vector :root (rest path-pieces))
-               ;; If the first item is ".", note that we start with :cwd and then
-               ;; discard the ".".
-               "." (apply vector :cwd (rest path-pieces))
-               (apply vector :cwd path-pieces))))))
+     ;; We have to check first if path is empty because when we try to parse
+     ;; say the root path, it will be separated into an empty list, making it
+     ;; indistinguishable. This avoids having an empty path parsed into [:root].
+     (if (empty? (str path))
+       nil
+       (let [sep-pat (cond (instance? java.util.regex.Pattern sep-pat) sep-pat
+                           ;; Don't build a pointless pattern if
+                           ;; separator is the default separator we
+                           ;; already have a pattern for.
+                           (= File/separator sep-pat) default-separator-pattern
+                           :else (re-pattern sep-pat))
+             path-pieces (str/split (str path) sep-pat)]
+         ;; (str/split "/" #"/") => [], so we check for this case first.
+         (if (= 0 (count path-pieces))
+           [:root]
+           (case (first path-pieces)
+             ;; If first item is "", we split a path that started with "/".
+             ;; Then we need to skip the "" at the start of path-pieces.
+             "" (apply vector :root (rest path-pieces))
+             ;; If the first item is ".", note that we start with
+             ;; :cwd and then discard the ".".
+             "." (apply vector :cwd (rest path-pieces))
+             (apply vector :cwd path-pieces)))))))
 
 (defn render-path
   "Given a seq of path elements as created by parse-path, returns a string
@@ -109,25 +117,59 @@
   [path]
   (.isAbsolute (File. path)))
 
+(defn normalize*
+  "Cleans up a path so that it has no leading/trailing whitespace, and
+   removes any removable same-/parent-dir references. path-pieces
+   should be a path vector in the format returned by parse-path;
+   return value is a vector in the same format."
+  [path-pieces]
+  (loop [result [(first path-pieces)]
+         remaining-path (rest path-pieces)]
+    (let [[curr & remainder] remaining-path]
+      (condp = curr
+        nil result
+        ;; Ignore a repeated separator (empty path component) or
+        ;; a same-dir component.
+        "" (recur result remainder)
+        "." (recur result remainder)
+        ".." (recur (up-dir result) remainder)
+        (recur (conj result curr) remainder)))))
+
 (defn normalize
   "Cleans up a path so that it has no leading/trailing whitespace, and
    removes any unremovable same-/parent-dir references. An optional second
-   argument can give a string containing the separator to use."
+   argument can give a string containing the separator to use. Takes the path
+   argument as a string and returns its result as a string."
   ([path]
      (normalize path default-separator-pattern))
   ([path sep]
-     (let [path-pieces (parse-path path sep)]
-       (loop [result [(first path-pieces)]
-              remaining-path (rest path-pieces)]
-         (let [[curr & remainder] remaining-path]
-           (condp = curr
-               nil (render-path result sep)
-               ;; Ignore a repeated separator (empty path component) or
-               ;; a same-dir component.
-               "" (recur result remainder)
-               "." (recur result remainder)
-               ".." (recur (up-dir result) remainder)
-               (recur (conj result curr) remainder)))))))
+     (render-path (normalize* (parse-path path sep)) sep)))
+
+(defn relativize*
+  "Takes two absolute paths or two relative paths, and returns a relative path
+   that indicates the same file system location as dest-path, but
+   relative to base-path. Paths should be path vectors, and the return
+   value is also a path vector."
+  [base-path dest-path]
+  (let [common-path (common-prefix base-path dest-path)
+        base-suffix (drop (count common-path) base-path)
+        dest-suffix (drop (count common-path) dest-path)]
+    (if (nil? common-path)
+      (throw (IllegalArgumentException.
+              "Paths contain no common components.")))
+    (concat [:cwd]
+            (repeat (count base-suffix) "..")
+            (loop [suffix []
+                   remainder dest-suffix]
+              (let [curr (first remainder)]
+                (condp = curr
+                  nil suffix
+                  "" (recur suffix (rest remainder))
+                  "." (recur suffix (rest remainder))
+                  ".." (recur (conj suffix "..")
+                              (rest remainder))
+                  (recur (conj suffix curr)
+                         (rest remainder))))))))
 
 (defn relativize
   "Takes two absolute paths or two relative paths, and returns a relative path
@@ -137,27 +179,25 @@
   ([base-path dest-path]
      (relativize base-path dest-path File/separator))
   ([base-path dest-path sep]
-     (let [base-path (parse-path (normalize base-path sep) sep)
-           dest-path (parse-path (normalize dest-path sep) sep)
-           common-path (common-prefix base-path dest-path)
-           base-suffix (drop (count common-path) base-path)
-           dest-suffix (drop (count common-path) dest-path)]
-       (if (nil? common-path)
-         (throw (IllegalArgumentException. "Paths contain no common components.")))
-       (render-path (concat [:cwd]
-                            (repeat (count base-suffix) "..")
-                            (loop [suffix []
-                                   remainder dest-suffix]
-                              (let [curr (first remainder)]
-                                (condp = curr
-                                    nil suffix
-                                    "" (recur suffix (rest remainder))
-                                    "." (recur suffix (rest remainder))
-                                    ".." (recur (conj suffix "..")
-                                                (rest remainder))
-                                    (recur (conj suffix curr)
-                                           (rest remainder))))))
-                    sep))))
+     (let [base-path (normalize* (parse-path base-path sep))
+           dest-path (normalize* (parse-path dest-path sep))]
+       (render-path (relativize* base-path dest-path) sep))))
+
+(defn resolve*
+  "Resolve the other-path against the base-path. If other-path is absolute,
+   the result is other-path. If other-path is nil, the result is base-path.
+   Otherwise, the result is other-path concatenated onto base-path. Does not
+   normalize its output. All inputs and outputs are path vectors."
+  [base-path other-path]
+  (cond (nil? other-path)
+        base-path
+        (= :root (first other-path)) ;; Is it absolute?
+        other-path
+        :else
+        (let [base-components (normalize* base-path)
+              ;; Skip the first element to get rid of the :cwd
+              other-components (rest (normalize* other-path))]
+          (concat base-components other-components))))
 
 (defn resolve
   "Resolve the other-path against the base-path. If other-path is absolute,
@@ -168,19 +208,9 @@
   ([base-path other-path]
      (resolve base-path other-path File/separator))
   ([base-path other-path sep]
-     (let [base-path (str base-path)
-           other-path (str other-path)]
-       (cond (nil? other-path)
-             base-path
-             (absolute-path? other-path)
-             other-path
-             :else
-             (let [base-components (parse-path (normalize base-path) sep)
-                   ;; Skip the first element to get rid of the :cwd.
-                   other-components (rest (parse-path (normalize other-path sep)
-                                                      sep))]
-               (render-path (concat base-components other-components)
-                            sep))))))
+     (render-path (resolve* (parse-path base-path sep)
+                            (parse-path other-path sep))
+                  sep)))
 
 (defn ensure-trailing-separator
   "If the path given does not have a trailing separator, returns a new path
