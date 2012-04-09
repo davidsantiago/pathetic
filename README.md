@@ -16,18 +16,46 @@ Anyhow, if you can't use Java 7 yet, those APIs won't help you much now.
 
 ## Usage
 
+Most of the work in this library is done by parsing a path into a
+vector representation, which is referred to in the code and
+documentation as a "path vector." If a path vector's first element is
+`:root`, then the path is absolute. If the path vector represents a
+relative path, then the first element is `:cwd`. 
+
+You can turn a string containing a path into a path vector using the
+function `parse-path`, and turn a path vector back into a string using
+the function `render-path`. Both accept an optional second argument
+containing the path separator.
+
+Note that nothing in pathetic looks at the actual file-system! All
+logic is based on the semantics of paths, and unrelated to whether any
+files actually exist or not.
+
 - `absolute-path? [path]`
-Returns true if the given argument is an absolute path.
+Returns true if the given string argument is an absolute path.
+
+- `normalize* [path-vector]`
+Cleans up a path vector so that it has no removable same-/parent-dir references.
 
 - `normalize [path],[path sep]`
 Cleans up a path so that it has no leading/trailing whitespace, and
-removes any unremovable same-/parent-dir references. If given, sep is a string containing
+removes any removable same-/parent-dir references. If given, sep is a string containing
 the path separator to use.
+
+- `relativize* [base-path-vec dest-path-vec]`
+Takes two absolute path vectors or two relative path vectors, and returns a relative path
+vector that indicates the same file system location as the destination path, but relative
+to the base path.
 
 - `relativize [base-path dest-path],[base-path dest-path sep]`
 Takes two absolute paths or two relative paths, and returns a relative path
 that indicates the same file system location as destination-path, but
 relative to base-path. If given, sep is a string containing the path separator to use.
+
+- `resolve* [base-path-vec other-path-vec]` Resolve the "other" path
+vector against the "base" path vector. If the "other" path vector is
+absolute, the result is the "other" path vector. If the "other" path is
+empty/nil, the result is the "base" path vector.
 
 - `resolve [base-path other-path],[base-path other-path sep]`
 Resolve the other-path against the base-path. If other-path is absolute,
@@ -58,6 +86,14 @@ unchanged (query, anchor, protocol, etc).
    
 ## News
 
+- Released version 0.3.1
+  - Added lower-level functions `normalize*`, `relativize*`, and
+    `resolve*`, which take path vectors and return path
+    vectors. `normalize`, `relativize`, and `resolve` have been
+    refactored to use these versions. As a result, the API is more
+    flexible and the code should run a small bit faster due to savings
+    on reparsing.
+
 - Released version 0.3.0
   - Most core functions now accept an additional, optional path-separator argument.
   - Addition of ensure-trailing-separator function.
@@ -71,7 +107,7 @@ unchanged (query, anchor, protocol, etc).
 
 If you are using Cake or Leiningen, you can simply add 
 
-    [pathetic "0.3.0"]
+    [pathetic "0.3.1"]
 
 to your project.clj and download it from Clojars with 
 
