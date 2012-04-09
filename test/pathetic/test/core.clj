@@ -49,6 +49,20 @@
   (is (= [:cwd "A"] (up-dir [:cwd "A" "B"])))
   (is (= [:root "A"] (up-dir [:root "A" "B"]))))
 
+(deftest test-normalize*
+  (is (= [:root "A" "B"] (normalize* [:root "A" "B" "C" ".."])))
+  (is (= [:root "A" "B"] (normalize* [:root "A" "B" "."])))
+  (is (= [:root "A" "B"] (normalize* [:root "A" "C" ".." "B"])))
+  (is (= [:cwd "A" "B"] (normalize* [:cwd "A" "B"])))
+  (is (= [:cwd ".." "A"] (normalize* [:cwd ".." "A"])))
+  (is (= [:cwd] (normalize* [:cwd "A" ".."])))
+  (is (= [:cwd "A"] (normalize* [:cwd "." "A"])))
+  (is (= [:cwd "A"] (normalize* [:cwd "." "." "A"])))
+  (is (= [:cwd] (normalize* [:cwd])))
+  (is (= [:cwd] (normalize* [:cwd "."])))
+  (is (= [:cwd] (normalize* [:cwd "." "."])))
+  (is (= [:cwd ".." ".."] (normalize* [:cwd ".." ".."]))))
+
 (deftest test-normalize
   (is (= "/A/B" (normalize "/A/B/C/..")))
   (is (= "/A/B" (normalize "/A/B/.")))
@@ -71,6 +85,21 @@
   ;; Test alternate separators
   (is (= "/A/B" (normalize "/A/B/" "/")))
   (is (= ":A:B" (normalize ":A:B" ":"))))
+
+(deftest test-relativize*
+  (is (= [:cwd "B"] (relativize* [:root "A"] [:root "A" "B"])))
+  (is (= [:cwd "B"] (relativize* [:root "A"] [:root "A" "." "B"])))
+  (is (= [:cwd "B" ".." ".."] (relativize* [:root "A"]
+                                           [:root "A" "B" ".." ".."])))
+  (is (= [:cwd ".."] (relativize* [:root "A"]
+                                  [:root])))
+  (is (= [:cwd "B"] (relativize* [:cwd "A"] [:cwd "A" "B"])))
+  (is (= [:cwd "B"] (relativize* [:cwd "A"] [:cwd "A" "." "B"])))
+  (is (= [:cwd "B" ".." ".."] (relativize* [:cwd "A"]
+                                           [:cwd "A" "B" ".." ".."])))
+  (is (= [:cwd ".."] (relativize* [:cwd "A"] [:cwd])))
+  (is (= [:cwd ".." "E" "F"] (relativize* [:root "A" "B" "C" "D"]
+                                          [:root "A" "B" "C" "E" "F"]))))
 
 (deftest test-relativize
   (is (= "B"
@@ -103,6 +132,13 @@
   ;; Test alternate separators
   (is (= "B" (relativize "/A" "/A/B" "/")))
   (is (= "B" (relativize ":A" ":A:B:" ":"))))
+
+(deftest test-resolve*
+  (is (= [:root "A" "B"] (resolve* [:root "A"] [:cwd "B"])))
+  (is (= [:root "A"] (resolve* [:root "A"] nil)))
+  (is (= [:root "B"] (resolve* [:root "A"] [:root "B"])))
+  (is (= [:cwd "A" "B"] (resolve* [:cwd "A"] [:cwd "B"])))
+  )
 
 (deftest test-resolve
   (is (= "/A/B" (resolve "/A/" "B")))
