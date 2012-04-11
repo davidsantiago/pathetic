@@ -1,8 +1,7 @@
 (ns pathetic.test.core
   (:refer-clojure :exclude [resolve])
   (:use pathetic.core
-        clojure.test
-        [clojure.java.io :only [file]]))
+        clojure.test))
 
 (deftest test-parse-path
   (is (= nil (parse-path nil)))
@@ -15,17 +14,7 @@
   (is (= [:cwd "A" "B"] (parse-path "./A/B")))
   (is (= [:cwd "A"] (parse-path "A")))
   (is (= [:cwd "A" "B"] (parse-path "A/B")))
-  (is (= [:cwd ".." "A"] (parse-path "../A")))
-
-  ;; Test File args work just as well.
-  (is (= [:root] (parse-path (file "/"))))
-  (is (= [:root "A" "B"] (parse-path (file "/A/B"))))
-  (is (= [:cwd ".." "A"] (parse-path "../A")))
-
-  ;; Test alternate separators
-  (is (= [:root] (parse-path "/" "/")))
-  (is (= [:root] (parse-path "\\" #"\\")))
-  (is (= [:root "A" "B"] (parse-path ":A:B" ":"))))
+  (is (= [:cwd ".." "A"] (parse-path "../A"))))
 
 (deftest test-render-path
   (is (= "/A" (render-path [:root "A"])))
@@ -34,12 +23,7 @@
   (is (= "A" (render-path [:cwd "A"])))
   (is (= "A/B" (render-path [:cwd "A" "B"])))
   (is (= ".." (render-path [:cwd ".."])))
-  (is (= "../A" (render-path [:cwd ".." "A"])))
-
-  ;; Test alternate separators
-  (is (= "/A" (render-path [:root "A"] "/")))
-  (is (= ":A:B" (render-path [:root "A" "B"] ":")))
-  (is (= "A\\B" (render-path [:cwd "A" "B"] "\\"))))
+  (is (= "../A" (render-path [:cwd ".." "A"]))))
 
 (deftest test-up-dir
   (is (= [:cwd ".."] (up-dir [:cwd])))
@@ -76,15 +60,7 @@
   (is (= "A" (normalize "././A")))
   (is (= "." (normalize ".")))
   (is (= "." (normalize "./.")))
-  (is (= "../.." (normalize "../..")))
-
-  ;; Test that it works the same on a File
-  (is (= "/A/B" (normalize (file "/A/B/C/.."))))
-  (is (= "../.." (normalize (file "../.."))))
-
-  ;; Test alternate separators
-  (is (= "/A/B" (normalize "/A/B/" "/")))
-  (is (= ":A:B" (normalize ":A:B" ":"))))
+  (is (= "../.." (normalize "../.."))))
 
 (deftest test-relativize*
   (is (= [:cwd "B"] (relativize* [:root "A"] [:root "A" "B"])))
@@ -119,19 +95,7 @@
   (is (= ".."
          (relativize "A" "A/B/../..")))
   (is (= "../E/F"
-         (relativize "/A/B/C/D" "/A/B/C/E/F")))
-
-  ;; Test File args in various combinations with strings.
-  (is (= "B"
-         (relativize (file "/A") (file "/A/B"))))
-  (is (= ".."
-         (relativize (file "/A") "/A/B/../../")))
-  (is (= "B"
-         (relativize "A" (file "A/./B"))))
-
-  ;; Test alternate separators
-  (is (= "B" (relativize "/A" "/A/B" "/")))
-  (is (= "B" (relativize ":A" ":A:B:" ":"))))
+         (relativize "/A/B/C/D" "/A/B/C/E/F"))))
 
 (deftest test-resolve*
   (is (= [:root "A" "B"] (resolve* [:root "A"] [:cwd "B"])))
@@ -147,16 +111,7 @@
   (is (= "/B" (resolve "/A" "/B")))
   (is (= "/B" (resolve "/A/" "/B")))
   (is (= "A/B" (resolve "A" "B")))
-  (is (= "A/B" (resolve "A/" "B/")))
-
-  ;; Test File args in various combinations
-  (is (= "/A/B" (resolve (file "/A/") (file "B"))))
-  (is (= "/B" (resolve (file "/A") "/B")))
-  (is (= "A/B" (resolve "A" (file "B"))))
-
-  ;; Test alternate separators
-  (is (= "/A/B" (resolve "/A/" "B" "/")))
-  (is (= ":A" (resolve ":A" nil ":"))))
+  (is (= "A/B" (resolve "A/" "B/"))))
 
 ;; In JDK7, java.nio.file.Path guarantees that if p and q are normalized paths,
 ;; and q does not start at root, then
@@ -179,9 +134,8 @@
   (is (= "/A/B/" (ensure-trailing-separator "/A/B")))
   (is (= "A/B/" (ensure-trailing-separator "A/B/")))
   (is (= "A/B/" (ensure-trailing-separator "A/B")))
-  (is (= "A/B/" (ensure-trailing-separator "A/B/" "/")))
-  (is (= "A/B/" (ensure-trailing-separator "A/B" "/")))
-  (is (= "A/B:" (ensure-trailing-separator "A/B" ":"))))
+  (is (= "A/B/" (ensure-trailing-separator "A/B/")))
+  (is (= "A/B/" (ensure-trailing-separator "A/B"))))
 
 (deftest test-split-url-on-path
   (is (= ["http://a.b.c" "/d/e/f" "?g=h"]
