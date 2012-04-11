@@ -11,8 +11,9 @@
 ;; pieces between File/separator). If the path is an absolute path, the first
 ;; component will be :root, so that if during processing everything else is
 ;; removed, we know to render "/" and not ".". Similarly, if the path is a
-;; relative path, the first component will be :cwd. In this file, I'll call
-;; this data structure a "path vector."
+;; relative path, the first component will be :cwd. The rest of the vector is
+;; the path components as strings. In this file, I'll call this data structure
+;; a "path vector."
 
 ;;
 ;; Utility Functions
@@ -35,7 +36,7 @@
 (defn parse-path
   "Given a j.io.File or string containing a relative or absolute path,
    returns the corresponding path vector data structure described at
-   the top of the file. 
+   the top of the file.
 
    This function does not do any normalization or simplification. However,
    because there is more than one way to write some paths, some simplification
