@@ -1,10 +1,9 @@
 (ns pathetic.core
   (:refer-clojure :exclude [resolve])
-  (:require [clojure.string :as str])
-  (:import java.io.File))
+  (:require [clojure.string :as str]))
 
-(def ^{:private true} default-separator-pattern
-  (re-pattern File/separator))
+(def ^{:private true} separator "/")
+(def ^{:private true} separator-pattern (re-pattern separator))
 
 ;; A note about the internal representation we work with for paths in this code.
 ;; ---
@@ -36,61 +35,48 @@
 (defn parse-path
   "Given a j.io.File or string containing a relative or absolute path,
    returns the corresponding path vector data structure described at
-   the top of the file. Optional second argument containing a string
-   or j.u.regex.Pattern (faster) to use for the separator can be
-   given.
+   the top of the file. 
 
    This function does not do any normalization or simplification. However,
    because there is more than one way to write some paths, some simplification
    might happen anyways, such as if the path starts with a (redundant) \".\"."
-  ([path]
-     (parse-path path default-separator-pattern))
-  ([path sep-pat]
-     ;; We have to check first if path is empty because when we try to parse
-     ;; say the root path, it will be separated into an empty list, making it
-     ;; indistinguishable. This avoids having an empty path parsed into [:root].
-     (if (empty? (str path))
-       nil
-       (let [sep-pat (cond (instance? java.util.regex.Pattern sep-pat) sep-pat
-                           ;; Don't build a pointless pattern if
-                           ;; separator is the default separator we
-                           ;; already have a pattern for.
-                           (= File/separator sep-pat) default-separator-pattern
-                           :else (re-pattern sep-pat))
-             path-pieces (str/split (str path) sep-pat)]
-         ;; (str/split "/" #"/") => [], so we check for this case first.
-         (if (= 0 (count path-pieces))
-           [:root]
-           (case (first path-pieces)
-             ;; If first item is "", we split a path that started with "/".
-             ;; Then we need to skip the "" at the start of path-pieces.
-             "" (apply vector :root (rest path-pieces))
-             ;; If the first item is ".", note that we start with
-             ;; :cwd and then discard the ".".
-             "." (apply vector :cwd (rest path-pieces))
-             (apply vector :cwd path-pieces)))))))
+  [path]
+  ;; We have to check first if path is empty because when we try to parse
+  ;; say the root path, it will be separated into an empty list, making it
+  ;; indistinguishable. This avoids having an empty path parsed into [:root].
+  (if (empty? (str path))
+    nil
+    (let [path-pieces (str/split (str path) separator-pattern)]
+      ;; (str/split "/" #"/") => [], so we check for this case first.
+      (if (= 0 (count path-pieces))
+        [:root]
+        (case (first path-pieces)
+          ;; If first item is "", we split a path that started with "/".
+          ;; Then we need to skip the "" at the start of path-pieces.
+          "" (apply vector :root (rest path-pieces))
+          ;; If the first item is ".", note that we start with
+          ;; :cwd and then discard the ".".
+          "." (apply vector :cwd (rest path-pieces))
+          (apply vector :cwd path-pieces))))))
 
 (defn render-path
   "Given a seq of path elements as created by parse-path, returns a string
-   containing the path represented. Accepts an optional second argument
-   containing a string to use as the separator. However, this function will only
+   containing the path represented. This function will only
    ever use unix-style path rules, so an absolute path will always start with
-   the given separator.
+   the \"/\" separator.
 
    NOTE: It is NOT the goal of this function to perform normalization, it just
    renders what it is given. HOWEVER, that does NOT mean that it is always true
    that (= (render-path (parse-path some-path)) some-path). That is, you may not
    render the exact same string you parsed. This is because the path syntax does
    not have exactly one way to write every path."
-  ([path-pieces]
-     (render-path path-pieces File/separator))
-  ([path-pieces sep]
-     (case (first path-pieces)
-           :root (str sep (str/join sep (rest path-pieces)))
-           :cwd (if (next path-pieces)
-                  (str/join sep (rest path-pieces))
-                  ".")
-           (str/join sep path-pieces))))
+  [path-pieces]
+  (case (first path-pieces)
+    :root (str separator (str/join separator (rest path-pieces)))
+    :cwd (if (next path-pieces)
+           (str/join separator (rest path-pieces))
+           ".")
+    (str/join separator path-pieces)))
 
 (defn up-dir
   "Given a seq of path elements as created by parse-path, returns a new
@@ -115,7 +101,7 @@
 (defn absolute-path?
   "Returns true if the given argument is an absolute path."
   [path]
-  (.isAbsolute (File. path)))
+  (.startsWith path separator))
 
 (defn normalize*
   "Cleans up a path so that it has no leading/trailing whitespace, and
@@ -137,13 +123,10 @@
 
 (defn normalize
   "Cleans up a path so that it has no leading/trailing whitespace, and
-   removes any unremovable same-/parent-dir references. An optional second
-   argument can give a string containing the separator to use. Takes the path
+   removes any unremovable same-/parent-dir references. Takes the path
    argument as a string and returns its result as a string."
-  ([path]
-     (normalize path default-separator-pattern))
-  ([path sep]
-     (render-path (normalize* (parse-path path sep)) sep)))
+  [path]
+  (render-path (normalize* (parse-path path))))
 
 (defn relativize*
   "Takes two absolute paths or two relative paths, and returns a relative path
@@ -174,14 +157,11 @@
 (defn relativize
   "Takes two absolute paths or two relative paths, and returns a relative path
    that indicates the same file system location as destination-path, but
-   relative to base-path. Accepts an optional third argument containing a string
-   with the path separator to use."
-  ([base-path dest-path]
-     (relativize base-path dest-path File/separator))
-  ([base-path dest-path sep]
-     (let [base-path (normalize* (parse-path base-path sep))
-           dest-path (normalize* (parse-path dest-path sep))]
-       (render-path (relativize* base-path dest-path) sep))))
+   relative to base-path."
+  [base-path dest-path]
+  (let [base-path (normalize* (parse-path base-path))
+        dest-path (normalize* (parse-path dest-path))]
+    (render-path (relativize* base-path dest-path))))
 
 (defn resolve*
   "Resolve the other-path against the base-path. If other-path is absolute,
@@ -205,23 +185,17 @@
    Otherwise, the result is other-path concatenated onto base-path. Does not
    normalize its output. Accepts an optional third argument containing a string
    with the path separator to use."
-  ([base-path other-path]
-     (resolve base-path other-path File/separator))
-  ([base-path other-path sep]
-     (render-path (resolve* (parse-path base-path sep)
-                            (parse-path other-path sep))
-                  sep)))
+  [base-path other-path]
+  (render-path (resolve* (parse-path base-path)
+                         (parse-path other-path))))
 
 (defn ensure-trailing-separator
   "If the path given does not have a trailing separator, returns a new path
-   that has one. Can be given an optional second argument containing the
-   separator as a string."
-  ([path]
-     (ensure-trailing-separator path File/separator))
-  ([path sep]
-      (if (.endsWith path sep)
-        path
-        (str path sep))))
+   that has one."
+  [path]
+  (if (.endsWith path separator)
+    path
+    (str path separator)))
 
 ;;
 ;; URL Utilities
@@ -250,7 +224,7 @@
    (query, anchor, protocol, etc)."
   [url-or-string]
   (let [[pre-path path post-path] (split-url-on-path url-or-string)]
-    (str pre-path (normalize path "/") post-path)))
+    (str pre-path (normalize path) post-path)))
 
 (defn url-ensure-trailing-separator
   "Behaves like ensure-trailing-separator on the path part of a URL, but takes
@@ -259,4 +233,4 @@
    unchanged (query, anchor, protocol, etc)."
   [url-or-string]
   (let [[pre-path path post-path] (split-url-on-path url-or-string)]
-    (str pre-path (ensure-trailing-separator path "/") post-path)))
+    (str pre-path (ensure-trailing-separator path) post-path)))
