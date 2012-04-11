@@ -24,8 +24,9 @@ relative path, then the first element is `:cwd`.
 
 You can turn a string containing a path into a path vector using the
 function `parse-path`, and turn a path vector back into a string using
-the function `render-path`. Both accept an optional second argument
-containing the path separator.
+the function `render-path`. You could also conceivably generate your own
+path vectors from some other file system and use the functions that work
+on path vectors.
 
 Note that nothing in pathetic looks at the actual file-system! All
 logic is based on the semantics of paths, and unrelated to whether any
@@ -34,39 +35,41 @@ files actually exist or not.
 - `absolute-path? [path]`
 Returns true if the given string argument is an absolute path.
 
+- `up-dir [path-vector]` 
+Returns a new path vector that has gone up one
+directory (as if ".." was the last component of the path).
+
 - `normalize* [path-vector]`
 Cleans up a path vector so that it has no removable same-/parent-dir references.
 
-- `normalize [path],[path sep]`
+- `normalize [path]`
 Cleans up a path so that it has no leading/trailing whitespace, and
-removes any removable same-/parent-dir references. If given, sep is a string containing
-the path separator to use.
+removes any removable same-/parent-dir references. 
 
 - `relativize* [base-path-vec dest-path-vec]`
 Takes two absolute path vectors or two relative path vectors, and returns a relative path
 vector that indicates the same file system location as the destination path, but relative
 to the base path.
 
-- `relativize [base-path dest-path],[base-path dest-path sep]`
+- `relativize [base-path dest-path]`
 Takes two absolute paths or two relative paths, and returns a relative path
 that indicates the same file system location as destination-path, but
-relative to base-path. If given, sep is a string containing the path separator to use.
+relative to base-path. 
 
-- `resolve* [base-path-vec other-path-vec]` Resolve the "other" path
-vector against the "base" path vector. If the "other" path vector is
-absolute, the result is the "other" path vector. If the "other" path is
-empty/nil, the result is the "base" path vector.
+- `resolve* [base-path-vec other-path-vec]` 
+Resolve the "other" path vector against the "base" path vector. If the "other"
+path vector is absolute, the result is the "other" path vector. If the "other"
+path is empty/nil, the result is the "base" path vector.
 
-- `resolve [base-path other-path],[base-path other-path sep]`
+- `resolve [base-path other-path]`
 Resolve the other-path against the base-path. If other-path is absolute,
 the result is other-path. If other-path is nil, the result is base-path.
 Otherwise, the result is other-path concatenated onto base-path. Does not
-normalize its output. If given, sep is a string containing the path separator to use.
+normalize its output. 
 
-- `ensure-trailing-separator [path],[path sep]`
+- `ensure-trailing-separator [path]`
 If the path given does not have a trailing separator, returns a new path that has one.
-Otherwise, returns the original path. If given, sep is a string containing the path
-separator to use.
+Otherwise, returns the original path.
 
 - `split-url-on-path [url-or-string]`
 Given a URL or string containing a URL, returns a vector of the three component strings: the
@@ -85,6 +88,10 @@ same URL instead of just a path. Everything but the path part of the URL is
 unchanged (query, anchor, protocol, etc).
    
 ## News
+
+- Released version 0.4.0
+  - The separator character is no longer configurable, it is assumed to be "/". The associated arities have been removed. 
+  - The use of java.io.File has been removed. Should work better on Windows now.
 
 - Released version 0.3.1
   - Added lower-level functions `normalize*`, `relativize*`, and
@@ -107,7 +114,7 @@ unchanged (query, anchor, protocol, etc).
 
 If you are using Cake or Leiningen, you can simply add 
 
-    [pathetic "0.3.1"]
+    [pathetic "0.4.0"]
 
 to your project.clj and download it from Clojars with 
 
