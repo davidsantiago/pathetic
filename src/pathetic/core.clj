@@ -79,6 +79,15 @@
            ".")
     (str/join separator path-pieces)))
 
+;;
+;; Core Functions
+;;
+
+(defn absolute-path?
+  "Returns true if the given argument is an absolute path."
+  [path]
+  (.startsWith path separator))
+
 (defn up-dir
   "Given a seq of path elements as created by parse-path, returns a new
    seq of path elements, but having gone \"up\" one directory. That is,
@@ -94,15 +103,6 @@
         ;; Going "up" from root just gives you root (it's its own parent).
         :root path-pieces
         (pop path-pieces)))
-
-;;
-;; Core Functions
-;;
-
-(defn absolute-path?
-  "Returns true if the given argument is an absolute path."
-  [path]
-  (.startsWith path separator))
 
 (defn normalize*
   "Cleans up a path so that it has no leading/trailing whitespace, and
