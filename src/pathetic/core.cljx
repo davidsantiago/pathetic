@@ -1,6 +1,11 @@
-(ns pathetic.core
-  (:refer-clojure :exclude [resolve])
-  (:require [clojure.string :as str]))
+^:clj (ns pathetic.core
+        (:refer-clojure :exclude [resolve])
+        (:require [clojure.string :as str]))
+
+^:cljs (ns pathetic.core
+         (:refer-clojure :exclude [resolve])
+         (:require [clojure.string :as str]
+                   [goog.string :as string]))
 
 (def ^{:private true} separator "/")
 (def ^{:private true} separator-pattern (re-pattern separator))
@@ -198,11 +203,19 @@
   (render-path (resolve* (parse-path base-path)
                          (parse-path other-path))))
 
+(defn ^:clj ends-with
+  [^String s suffix]
+  (.endsWith s suffix))
+
+(defn ^:cljs ends-with
+  [s suffix]
+  (goog.string.endsWith s suffix))
+
 (defn ensure-trailing-separator
   "If the path given does not have a trailing separator, returns a new path
    that has one."
   [path]
-  (if (.endsWith path separator)
+  (if (ends-with path separator)
     path
     (str path separator)))
 
