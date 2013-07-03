@@ -1,7 +1,13 @@
-(ns pathetic.test.core
-  (:refer-clojure :exclude [resolve])
-  (:use pathetic.core
-        clojure.test))
+^:clj (ns pathetic.test.core
+        (:refer-clojure :exclude [resolve])
+        (:use pathetic.core
+              clojure.test))
+
+^:cljs (ns pathetic.test.core
+         (:refer-clojure :exclude [resolve])
+         (:require-macros [cemerick.cljs.test :refer (is deftest with-test run-tests testing)])
+         (:use [pathetic.core :only [parse-path render-path up-dir normalize url-normalize relativize resolve split-url-on-path ensure-trailing-separator]])
+         (:require [cemerick.cljs.test :as t]))
 
 (deftest test-parse-path
   (is (= nil (parse-path nil)))
