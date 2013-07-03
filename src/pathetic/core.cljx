@@ -5,6 +5,7 @@
 ^:cljs (ns pathetic.core
          (:refer-clojure :exclude [resolve])
          (:require [clojure.string :as str]
+                   [goog.Uri :as uri]
                    [goog.string :as string]))
 
 (def ^{:private true} separator "/")
@@ -231,15 +232,25 @@
 ;; URL Utilities
 ;;
 
+(defn ^:clj as-url
+  [url-or-string]
+  (if (instance? java.net.URL url-or-string)
+    url-or-string
+    (java.net.URL. url-or-string)))
+
+(defn ^:cljs as-url
+  [url-or-string]
+  (if (instance? goog.Uri url-or-string)
+    url-or-string
+    (goog.Uri. url-or-string)))
+
 (defn split-url-on-path
   "Given a URL or string containing a URL, returns a vector of the three
    component strings: the stuff before the path, the path, and the stuff
    after the path. Useful for destructuring."
   [url-or-string]
-  ;; We borrow j.n.URL's parser just to make sure we get the right path.
-  (let [url (if (instance? java.net.URL url-or-string)
-              url-or-string
-              (java.net.URL. url-or-string))
+  ;; We borrow j.n.URL's or goog.Uri's parser just to make sure we get the right path.
+  (let [url (as-url url-or-string)
         url-string (str url)
         path (.getPath url)
         path-idx (.lastIndexOf url-string path)
