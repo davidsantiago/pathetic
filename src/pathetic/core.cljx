@@ -88,10 +88,18 @@
 ;; Core Functions
 ;;
 
+(defn ^:clj starts-with
+  [^String s ^String prefix]
+  (.startsWith s prefix))
+
+(defn ^:cljs starts-with
+  [s prefix]
+  (goog.string.startsWith s prefix))
+
 (defn absolute-path?
   "Returns true if the given argument is an absolute path."
   [path]
-  (.startsWith path separator))
+  (starts-with path separator))
 
 (defn up-dir
   "Given a seq of path elements as created by parse-path, returns a new
@@ -204,7 +212,7 @@
                          (parse-path other-path))))
 
 (defn ^:clj ends-with
-  [^String s suffix]
+  [^String s ^String suffix]
   (.endsWith s suffix))
 
 (defn ^:cljs ends-with
