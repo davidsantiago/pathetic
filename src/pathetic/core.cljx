@@ -39,6 +39,16 @@
   (let [common-parts (common-prefix uninteresting-coll interesting-coll)]
     (drop (count common-parts) interesting-coll)))
 
+(defn ^:clj split
+  [path]
+  (str/split (str path) separator-pattern))
+
+(defn ^:cljs split
+  [path]
+  (if (= path separator)
+    []
+    (str/split (str path) separator-pattern)))
+
 (defn parse-path
   "Given a j.io.File or string containing a relative or absolute path,
    returns the corresponding path vector data structure described at
@@ -53,7 +63,7 @@
   ;; indistinguishable. This avoids having an empty path parsed into [:root].
   (if (empty? (str path))
     nil
-    (let [path-pieces (str/split (str path) separator-pattern)]
+    (let [path-pieces (split path)]
       ;; (str/split "/" #"/") => [], so we check for this case first.
       (if (= 0 (count path-pieces))
         [:root]
