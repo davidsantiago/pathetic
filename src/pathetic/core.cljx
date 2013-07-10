@@ -157,17 +157,6 @@
   [path]
   (render-path (normalize* (parse-path path))))
 
-#+clj
-(defn throw-no-common-components
-  []
-  (throw (IllegalArgumentException.
-           "Paths contain no common components.")))
-
-#+cljs
-(defn throw-no-common-components
-  []
-  (throw "Paths contain no common components."))
-
 (defn relativize*
   "Takes two absolute paths or two relative paths, and returns a relative path
    that indicates the same file system location as dest-path, but
@@ -178,7 +167,7 @@
         base-suffix (drop (count common-path) base-path)
         dest-suffix (drop (count common-path) dest-path)]
     (if (nil? common-path)
-      (throw-no-common-components))
+      (throw (ex-info "Paths contain no common components." {})))
     (concat [:cwd]
             (repeat (count base-suffix) "..")
             (loop [suffix []
