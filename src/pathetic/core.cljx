@@ -1,8 +1,8 @@
-^:clj (ns pathetic.core
+#+clj (ns pathetic.core
         (:refer-clojure :exclude [resolve])
         (:require [clojure.string :as str]))
 
-^:cljs (ns pathetic.core
+#+cljs (ns pathetic.core
          (:refer-clojure :exclude [resolve])
          (:require [clojure.string :as str]
                    [goog.Uri :as uri]
@@ -39,11 +39,13 @@
   (let [common-parts (common-prefix uninteresting-coll interesting-coll)]
     (drop (count common-parts) interesting-coll)))
 
-(defn ^:clj split
+#+clj
+(defn split
   [path]
   (str/split (str path) separator-pattern))
 
-(defn ^:cljs split
+#+cljs
+(defn split
   [path]
   (if (= path separator)
     []
@@ -99,11 +101,13 @@
 ;; Core Functions
 ;;
 
+#+clj
 (defn ^:clj starts-with
   [^String s ^String prefix]
   (.startsWith s prefix))
 
-(defn ^:cljs starts-with
+#+cljs
+(defn starts-with
   [s prefix]
   (goog.string.startsWith s prefix))
 
@@ -153,12 +157,14 @@
   [path]
   (render-path (normalize* (parse-path path))))
 
-(defn ^:clj throw-no-common-components
+#+clj
+(defn throw-no-common-components
   []
   (throw (IllegalArgumentException.
            "Paths contain no common components.")))
 
-(defn ^:cljs throw-no-common-components
+#+cljs
+(defn throw-no-common-components
   []
   (throw "Paths contain no common components."))
 
@@ -222,11 +228,13 @@
   (render-path (resolve* (parse-path base-path)
                          (parse-path other-path))))
 
-(defn ^:clj ends-with
+#+clj
+(defn ends-with
   [^String s ^String suffix]
   (.endsWith s suffix))
 
-(defn ^:cljs ends-with
+#+cljs
+(defn ends-with
   [s suffix]
   (goog.string.endsWith s suffix))
 
@@ -242,13 +250,15 @@
 ;; URL Utilities
 ;;
 
-(defn ^:clj as-url
+#+clj
+(defn as-url
   [url-or-string]
   (if (instance? java.net.URL url-or-string)
     url-or-string
     (java.net.URL. url-or-string)))
 
-(defn ^:cljs as-url
+#+cljs
+(defn as-url
   [url-or-string]
   (if (instance? goog.Uri url-or-string)
     url-or-string
