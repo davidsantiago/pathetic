@@ -1,4 +1,4 @@
-(defproject pathetic "0.5.0-SNAPSHOT"
+(defproject pathetic "0.5.0"
   :description "The missing path handling."
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [com.cemerick/clojurescript.test "0.0.4"]]
