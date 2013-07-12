@@ -89,6 +89,11 @@ unchanged (query, anchor, protocol, etc).
    
 ## News
 
+- Released version 0.5.0
+  - Now works on both Clojure and ClojureScript, thanks to the work of [Julien Eluard](https://github.com/jeluard).
+  - Now requires Clojure 1.4 or newer, to enable ClojureScript interop. This version contains no new
+    functionality or bug fixes relative to 0.4.0, so that is still usable with earlier versions of Clojure.
+
 - Released version 0.4.0
   - The separator character is no longer configurable, it is assumed to be "/". The associated arities have been removed. 
   - The use of java.io.File has been removed. Should work better on Windows now.
@@ -112,13 +117,11 @@ unchanged (query, anchor, protocol, etc).
 
 ## Obtaining
 
-If you are using Cake or Leiningen, you can simply add 
+If you are using Leiningen, you can simply add 
 
-    [pathetic "0.4.0"]
+    [pathetic "0.5.0"]
 
-to your project.clj and download it from Clojars with 
-
-    lein deps
+to your project.clj.
 
 ## License
 
