@@ -1,6 +1,12 @@
-(ns pathetic.core
-  (:refer-clojure :exclude [resolve])
-  (:require [clojure.string :as str]))
+#+clj (ns pathetic.core
+        (:refer-clojure :exclude [resolve])
+        (:require [clojure.string :as str]))
+
+#+cljs (ns pathetic.core
+         (:refer-clojure :exclude [resolve])
+         (:require [clojure.string :as str]
+                   [goog.Uri :as uri]
+                   [goog.string :as string]))
 
 (def ^{:private true} separator "/")
 (def ^{:private true} separator-pattern (re-pattern separator))
@@ -33,6 +39,18 @@
   (let [common-parts (common-prefix uninteresting-coll interesting-coll)]
     (drop (count common-parts) interesting-coll)))
 
+#+clj
+(defn split
+  [path]
+  (str/split (str path) separator-pattern))
+
+#+cljs
+(defn split
+  [path]
+  (if (= path separator)
+    []
+    (str/split (str path) separator-pattern)))
+
 (defn parse-path
   "Given a j.io.File or string containing a relative or absolute path,
    returns the corresponding path vector data structure described at
@@ -47,7 +65,7 @@
   ;; indistinguishable. This avoids having an empty path parsed into [:root].
   (if (empty? (str path))
     nil
-    (let [path-pieces (str/split (str path) separator-pattern)]
+    (let [path-pieces (split path)]
       ;; (str/split "/" #"/") => [], so we check for this case first.
       (if (= 0 (count path-pieces))
         [:root]
@@ -83,10 +101,20 @@
 ;; Core Functions
 ;;
 
+#+clj
+(defn ^:clj starts-with
+  [^String s ^String prefix]
+  (.startsWith s prefix))
+
+#+cljs
+(defn starts-with
+  [s prefix]
+  (goog.string.startsWith s prefix))
+
 (defn absolute-path?
   "Returns true if the given argument is an absolute path."
   [path]
-  (.startsWith path separator))
+  (starts-with path separator))
 
 (defn up-dir
   "Given a seq of path elements as created by parse-path, returns a new
@@ -139,8 +167,7 @@
         base-suffix (drop (count common-path) base-path)
         dest-suffix (drop (count common-path) dest-path)]
     (if (nil? common-path)
-      (throw (IllegalArgumentException.
-              "Paths contain no common components.")))
+      (throw (ex-info "Paths contain no common components." {})))
     (concat [:cwd]
             (repeat (count base-suffix) "..")
             (loop [suffix []
@@ -190,11 +217,21 @@
   (render-path (resolve* (parse-path base-path)
                          (parse-path other-path))))
 
+#+clj
+(defn ends-with
+  [^String s ^String suffix]
+  (.endsWith s suffix))
+
+#+cljs
+(defn ends-with
+  [s suffix]
+  (goog.string.endsWith s suffix))
+
 (defn ensure-trailing-separator
   "If the path given does not have a trailing separator, returns a new path
    that has one."
   [path]
-  (if (.endsWith path separator)
+  (if (ends-with path separator)
     path
     (str path separator)))
 
@@ -202,15 +239,27 @@
 ;; URL Utilities
 ;;
 
+#+clj
+(defn as-url
+  [url-or-string]
+  (if (instance? java.net.URL url-or-string)
+    url-or-string
+    (java.net.URL. url-or-string)))
+
+#+cljs
+(defn as-url
+  [url-or-string]
+  (if (instance? goog.Uri url-or-string)
+    url-or-string
+    (goog.Uri. url-or-string)))
+
 (defn split-url-on-path
   "Given a URL or string containing a URL, returns a vector of the three
    component strings: the stuff before the path, the path, and the stuff
    after the path. Useful for destructuring."
   [url-or-string]
-  ;; We borrow j.n.URL's parser just to make sure we get the right path.
-  (let [url (if (instance? java.net.URL url-or-string)
-              url-or-string
-              (java.net.URL. url-or-string))
+  ;; We borrow j.n.URL's or goog.Uri's parser just to make sure we get the right path.
+  (let [url (as-url url-or-string)
         url-string (str url)
         path (.getPath url)
         path-idx (.lastIndexOf url-string path)
