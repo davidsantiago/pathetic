@@ -1,7 +1,6 @@
 (defproject pathetic "0.5.0"
   :description "The missing path handling."
-  :dependencies [[org.clojure/clojure "1.5.1"]
-                 [com.cemerick/clojurescript.test "0.0.4"]]
+  :dependencies [[org.clojure/clojure "1.5.1"]]
 
   :source-paths ["target/generated-src"]
   :test-paths ["target/generated-test"]
@@ -24,7 +23,8 @@
                    :output-path "target/generated-test"
                    :rules :cljs}]}
   :profiles {:clojure1.4 {:dependencies [[org.clojure/clojure "1.4.0"]]}
-             :clojure1.5 {:dependencies [[org.clojure/clojure "1.5.1"]]}}
+             :clojure1.5 {:dependencies [[org.clojure/clojure "1.5.1"]]}
+             :dev {:dependencies [[com.cemerick/clojurescript.test "1.0.4"]]}
   :cljsbuild {:builds [{:source-paths ["target/generated-src"
                                        "target/generated-test"]
                         :compiler {:output-to "target/cljs/testable.js"
