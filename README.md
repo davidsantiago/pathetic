@@ -89,6 +89,9 @@ unchanged (query, anchor, protocol, etc).
    
 ## News
 
+- Released version 0.5.1
+  - clojurescript.test was erroneously added as a dependency in the 0.5.0 release; this release simply moves it to a dev dependency, as it should have always been. Thanks to [Pierre Carrier](https://github.com/pcarrier) for the fix.
+
 - Released version 0.5.0
   - Now works on both Clojure and ClojureScript, thanks to the work of [Julien Eluard](https://github.com/jeluard).
   - Now requires Clojure 1.4 or newer, to enable ClojureScript interop. This version contains no new
@@ -119,7 +122,7 @@ unchanged (query, anchor, protocol, etc).
 
 If you are using Leiningen, you can simply add 
 
-    [pathetic "0.5.0"]
+    [pathetic "0.5.1"]
 
 to your project.clj.
 
