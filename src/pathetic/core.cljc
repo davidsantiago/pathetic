@@ -1,12 +1,12 @@
-#+clj (ns pathetic.core
+#?(:clj (ns pathetic.core
         (:refer-clojure :exclude [resolve])
         (:require [clojure.string :as str]))
 
-#+cljs (ns pathetic.core
+:cljs (ns pathetic.core
          (:refer-clojure :exclude [resolve])
          (:require [clojure.string :as str]
                    [goog.Uri :as uri]
-                   [goog.string :as string]))
+                   [goog.string :as string])))
 
 (def ^{:private true} separator "/")
 (def ^{:private true} separator-pattern (re-pattern separator))
@@ -39,17 +39,17 @@
   (let [common-parts (common-prefix uninteresting-coll interesting-coll)]
     (drop (count common-parts) interesting-coll)))
 
-#+clj
+#?(:clj
 (defn split
   [path]
   (str/split (str path) separator-pattern))
 
-#+cljs
+:cljs
 (defn split
   [path]
   (if (= path separator)
     []
-    (str/split (str path) separator-pattern)))
+    (str/split (str path) separator-pattern))))
 
 (defn parse-path
   "Given a j.io.File or string containing a relative or absolute path,
@@ -101,15 +101,15 @@
 ;; Core Functions
 ;;
 
-#+clj
+#?(:clj
 (defn ^:clj starts-with
   [^String s ^String prefix]
   (.startsWith s prefix))
 
-#+cljs
+:cljs
 (defn starts-with
   [s prefix]
-  (goog.string.startsWith s prefix))
+  (goog.string.startsWith s prefix)))
 
 (defn absolute-path?
   "Returns true if the given argument is an absolute path."
@@ -217,15 +217,15 @@
   (render-path (resolve* (parse-path base-path)
                          (parse-path other-path))))
 
-#+clj
+#?(:clj
 (defn ends-with
   [^String s ^String suffix]
   (.endsWith s suffix))
 
-#+cljs
+:cljs
 (defn ends-with
   [s suffix]
-  (goog.string.endsWith s suffix))
+  (goog.string.endsWith s suffix)))
 
 (defn ensure-trailing-separator
   "If the path given does not have a trailing separator, returns a new path
@@ -239,19 +239,19 @@
 ;; URL Utilities
 ;;
 
-#+clj
+#?(:clj
 (defn as-url
   [url-or-string]
   (if (instance? java.net.URL url-or-string)
     url-or-string
     (java.net.URL. url-or-string)))
 
-#+cljs
+:cljs
 (defn as-url
   [url-or-string]
   (if (instance? goog.Uri url-or-string)
     url-or-string
-    (goog.Uri. url-or-string)))
+    (goog.Uri. url-or-string))))
 
 (defn split-url-on-path
   "Given a URL or string containing a URL, returns a vector of the three
